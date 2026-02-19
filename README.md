@@ -104,7 +104,7 @@ build.bat
 ```
 ```python
 # For Linux
-./build-mac.sh
+./build-lnx.sh
 ```
 
 #### 🐞 Debugging Mode  
