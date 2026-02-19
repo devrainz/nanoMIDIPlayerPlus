@@ -1,8 +1,8 @@
 <img width="804" height="249" alt="bnr" src="https://github.com/user-attachments/assets/63d98de7-416e-493c-876b-f76d1ee8599b" />
 
-# 🎹 nanoMIDIPlayerPlus
+# 🎹 nanoMIDIPlayer+
 
-**nanoMIDIPlayerPlus** is a heavily modified fork of the original [nanoMIDIPlayer](https://github.com/NotHammer043/nanoMIDIPlayer).
+**nanoMIDIPlayer+** is a heavily modified fork of the original [nanoMIDIPlayer](https://github.com/NotHammer043/nanoMIDIPlayer).
 
 This project focuses on expanding functionality, improving performance, refining usability, and introducing new systems while keeping compatibility with core concepts from the original project.
 
@@ -27,18 +27,18 @@ Huge credits to **NotHammer043** and all contributors of the original nanoMIDIPl
 
 ### 🔥 nanoMIDIPlayerPlus Improvements
 
-> Features below include current improvements and planned additions for the Plus version.
+> Features below include current improvements (in development) and planned additions for the Plus version.
 
-- ⚡ Performance optimizations for smoother playback
+- ⚡ Optimizations for smoother playback
 - 🧠 Improved MIDI processing system
-- 🐧 Enhanced Linux compatibility & backend adjustments
+- 🐧 Enhanced Linux compatibility (X11 and Wayland) & backend adjustments 
 - 🔧 Internal engine refactors for easier expansion
+- 📝 Added more Human Fail options such as Note/Chords Jitter and Accidental Notes
+- 📚 Better MIDI Hub (Original Hub + NEW Musescore API Hub)
 - 🎹 Better event handling and timing precision
-- 🧩 Modular architecture improvements
-- 🧪 Experimental new MIDI utilities (beta systems)
-- 🎛️ Expanded customization options
-- 🔄 Improved internal stability and reliability
-- 🆕 Future UI and workflow improvements (WIP)
+- 🎛️ Added Groups (Songs Library) instead of old MIDI list
+- 🔄 Improved internal reliability for all Platforms
+- 🆕 Newer UI and workflow improvements (WIP)
 
 ---
 
