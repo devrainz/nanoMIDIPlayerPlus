@@ -9,5 +9,4 @@ dist/
 /*.mid
 *.mid
 temp_icon.ico
-build-lnx.sh
 modulesbackup/
