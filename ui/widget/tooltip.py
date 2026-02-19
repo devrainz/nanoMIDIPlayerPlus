@@ -1,43 +1,65 @@
-from ui import customTheme
+import ui.customTheme as customTheme
 from modules import configuration
 from tkinter import Toplevel, LEFT, SOLID, Label
 
-class ToolTip(object):
-    def __init__(self, widget):
+
+class ToolTip:
+    def __init__(self, widget, text=None):
         customTheme.initializeFonts()
+
         self.widget = widget
+        self.text = text
         self.tipwindow = None
-        self.id = None
-        self.x = self.y = 0
 
-    def showTip(self, text):
-        if configuration.configData["appUI"]["tooltip"]:
-            self.text = text
-            if self.tipwindow or not self.text:
-                return
-            x, y, cx, cy = self.widget.bbox("insert")
-            x = x + self.widget.winfo_rootx() + 57
-            y = y + cy + self.widget.winfo_rooty() +27
-            self.tipwindow = tw = Toplevel(self.widget)
-            tw.wm_overrideredirect(1)
-            tw.wm_attributes("-topmost", True)
-            tw.wm_geometry("+%d+%d" % (x, y))
-            label = Label(tw, text=self.text, justify=LEFT, fg="#ffffff",
-                        background="#151515", relief=SOLID, borderwidth=1,
-                        font=customTheme.globalFont14)
-            label.pack(ipadx=1)
+        if text:
+            self.bind_events()
 
-    def hideTip(self):
-        tw = self.tipwindow
-        self.tipwindow = None
-        if tw:
-            tw.destroy()
+    # -----------------------------
 
+    def bind_events(self):
+        self.widget.bind("<Enter>", self.enter)
+        self.widget.bind("<Leave>", self.leave)
+
+    # -----------------------------
+
+    def enter(self, _event=None):
+        if not configuration.configData["appUI"]["tooltip"]:
+            return
+
+        if self.tipwindow or not self.text:
+            return
+
+        x = self.widget.winfo_rootx() + 40
+        y = self.widget.winfo_rooty() + 25
+
+        self.tipwindow = tw = Toplevel(self.widget)
+
+        # CRITICAL for Hyprland:
+        tw.wm_overrideredirect(True)
+        tw.attributes("-type", "tooltip")  # prevents compositor focus stealing
+        tw.attributes("-topmost", True)
+
+        tw.geometry(f"+{x}+{y}")
+
+        Label(
+            tw,
+            text=self.text,
+            justify=LEFT,
+            fg="#ffffff",
+            background="#151515",
+            relief=SOLID,
+            borderwidth=1,
+            font=customTheme.globalFont14,
+        ).pack(ipadx=4, ipady=2)
+
+    # -----------------------------
+
+    def leave(self, _event=None):
+        if self.tipwindow:
+            self.tipwindow.destroy()
+            self.tipwindow = None
+
+    # Backwards compatibility
+    @staticmethod
     def CreateToolTip(widget, text):
-        toolTip = ToolTip(widget)
-        def enter(event):
-            toolTip.showTip(text)
-        def leave(event):
-            toolTip.hideTip()
-        widget.bind('<Enter>', enter)
-        widget.bind('<Leave>', leave)
+        ToolTip(widget, text)

@@ -5,7 +5,7 @@ import tkinter as tk
 from PIL import Image, ImageTk
 from modules import configuration
 from modules.functions import mainFunctions
-from ui import customTheme
+import ui.customTheme as customTheme
 
 osName = platform.system()
 documentsDir = os.path.join(os.path.expanduser("~"), "Documents")

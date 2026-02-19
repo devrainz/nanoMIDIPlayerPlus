@@ -2,7 +2,7 @@
   "midiPlayer": {
     "currentFile": "",
     "midiList": [],
-    "inputModule": "pynput",
+    "inputModule": "uinput",
     "loopSong": false,
     "releaseOnPause": true,
     "useMIDIOutput": false,

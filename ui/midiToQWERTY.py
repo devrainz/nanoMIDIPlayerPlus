@@ -27,7 +27,8 @@ class MidiToQwertyTab(ctk.CTkFrame):
         )
         self.midiFrame.grid(row=0, column=0, sticky="nsew")
         self.midiFrame.grid_columnconfigure(0, weight=1)
-
+        self.midiFrame.grid_columnconfigure(1, weight=1)
+        
         self.inputDeviceLabel = ctk.CTkLabel(
             self.midiFrame, text="MIDI Input Device", fg_color="transparent", font=customTheme.globalFont14, 
             text_color=customTheme.activeThemeData["Theme"]["MidiToQWERTY"]["TextColor"], 
@@ -237,11 +238,22 @@ class MidiToQwertyTab(ctk.CTkFrame):
 
         self.moduleSelector.grid(row=5, column=0, padx=(0, 265), pady=(0, 0), sticky="es")
         
-        if osName != "Windows":
+        if osName == "Linux":
+            # Hyprland/Wayland build: only uinput is supported
+            self.moduleSelector.configure(values=["uinput"], state="disabled")
+            self.moduleSelector.set("uinput")
+
+            # also force config so it never saves old values
+            if configuration.configData.get("midiToQwerty") is None:
+                configuration.configData["midiToQwerty"] = {}
+            configuration.configData["midiToQwerty"]["inputModule"] = "uinput"
+        elif osName == "Windows":
+            self.moduleSelector.configure(values=["pynput", "keyboard"], state="normal")
+            self.moduleSelector.set(configuration.configData.get("midiToQwerty", {}).get("inputModule", "pynput"))
+        else:
+            # macOS/other platforms: keep disabled for now
             self.moduleSelector.set("Unavailable")
             self.moduleSelector.configure(state="disabled")
-        else:
-            self.moduleSelector.set(configuration.configData.get("midiToQwerty", {}).get("inputModule", "pynput"))
         
         ToolTip.CreateToolTip(self.moduleSelector, text = 'Module for simulating keypresses')
 

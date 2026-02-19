@@ -3,7 +3,7 @@ import subprocess
 import platform
 import logging
 
-from ui import customTheme
+import ui.customTheme as customTheme
 from PIL import Image
 from modules.functions import mainFunctions
 

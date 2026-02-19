@@ -14,115 +14,6 @@ from evdev import UInput, ecodes as e
 
 log = mainFunctions.log
 
-# ============================================================
-# HUMANIZER (SAFE + STRONGER, BUT NOT "ARPEGGIO")
-# ============================================================
-# What we do:
-# - Always apply a tiny micro-jitter to NOTE_ON timing (very small, safe).
-# - If multiple NOTE_ON happen at the same MIDI timestamp (a chord),
-#   apply a small "roll/spread" across them.
-#
-# What we DO NOT do:
-# - Big random delays (that turns chords into arpeggios).
-# - Random "sometimes yes sometimes no" humanizer (looks too perfect).
-#
-# You can tweak these ranges if you want:
-HUMAN_ALWAYS_PROB = 0.95          # 95% of note_on get micro-jitter
-HUMAN_JITTER_EARLY_MIN = -0.003   # -3ms (early)
-HUMAN_JITTER_LATE_MAX = 0.010     # +10ms (late)
-
-CHORD_ROLL_MIN = 0.002            # 2ms total roll
-CHORD_ROLL_MAX = 0.010            # 10ms total roll (still safe)
-CHORD_ROLL_MAX_PER_NOTE = 0.004   # cap per-note roll so it won't become arpeggio
-
-def _sleep_seconds(s: float):
-    if s and s > 0:
-        time.sleep(s)
-
-def humanize_time_note_on(velocity: int):
-    """
-    MUCH more realistic human timing.
-
-    Always active.
-    Velocity-biased.
-    Removes robotic feel completely.
-    """
-
-    jitter = random.uniform(-0.005, 0.014)
-
-    # velocity bias
-    try:
-        v = max(1, min(127, int(velocity)))
-        bias = (70 - v) / 70.0
-        jitter += bias * 0.002
-    except:
-        pass
-
-    if jitter > 0:
-        time.sleep(jitter)
-
-def humanize_block(messages):
-    """
-    Strong human chord engine.
-
-    Guarantees:
-    - ZERO perfectly stacked chords
-    - Natural finger roll
-    - No arpeggio effect
-    - No audible timing damage
-    """
-
-    note_ons = [m for m in messages if (not m.is_meta and m.type == "note_on" and getattr(m, "velocity", 0) > 0)]
-    others = [m for m in messages if m not in note_ons]
-
-    # Dispatch pedals / note_off immediately
-    for m in others:
-        dispatch_message(m)
-
-    if not note_ons:
-        return
-
-    chord_size = len(note_ons)
-
-    # ------------------------------------------------
-    # MUCH STRONGER SPREAD LOGIC
-    # ------------------------------------------------
-    # Humans naturally spread bigger chords more.
-    #
-
-    if chord_size == 1:
-        spread_total = random.uniform(0.004, 0.012)  # 4–12ms
-    elif chord_size == 2:
-        spread_total = random.uniform(0.006, 0.016)
-    elif chord_size <= 4:
-        spread_total = random.uniform(0.008, 0.022)
-    else:
-        spread_total = random.uniform(0.012, 0.032)
-
-    # Hard cap → prevents arpeggio
-    spread_total = min(spread_total, 0.032)
-
-    per_note = spread_total / chord_size
-
-    # NEVER allow microscopic offsets again
-    per_note = max(per_note, 0.0025)   # ← critical fix (2.5ms minimum)
-
-    # slight randomness so spacing isn't perfectly even
-    random.shuffle(note_ons)
-
-    for i, msg in enumerate(note_ons):
-
-        if i > 0:
-            jitter = random.uniform(0.75, 1.35)
-            time.sleep(per_note * jitter)
-
-        # micro timing for finger inaccuracy
-        micro = random.uniform(-0.002, 0.004)
-        if micro > 0:
-            time.sleep(micro)
-
-        dispatch_message(msg)
-
 # ------------------------
 # UINPUT DEVICE
 # ------------------------
@@ -141,10 +32,12 @@ KEY_MAP = {
     "alt": e.KEY_LEFTALT,
 }
 
+# Create uinput device once. Expose only keys we use.
 _ui = UInput({e.EV_KEY: list(set(KEY_MAP.values()))}, name="nanoMIDIPlayer-uinput", bustype=e.BUS_USB)
 
-heldKeys = set()                 # keys currently held down (strings)
-activeTransposedNotes = {}       # original_note -> [transposed_notes...]
+pressedKeys = set()     # for debug
+heldKeys = set()        # keys currently held down (strings)
+activeTransposedNotes = {}  # original_note -> [transposed_notes...]
 
 stopEvent = threading.Event()
 clockThreadRef = None
@@ -167,16 +60,12 @@ def _code(key):
     return KEY_MAP.get(str(key).lower())
 
 
-def _norm_key(key) -> str:
-    return str(key).lower()
-
-
 def press(key):
     """Press a mapped key once (idempotent if already held)."""
     code = _code(key)
     if code is None:
         return
-    k = _norm_key(key)
+    k = str(key).lower()
     if k in heldKeys:
         return
     _ui.write(e.EV_KEY, code, 1)
@@ -189,7 +78,7 @@ def release(key):
     code = _code(key)
     if code is None:
         return
-    k = _norm_key(key)
+    k = str(key).lower()
     if k not in heldKeys:
         return
     _ui.write(e.EV_KEY, code, 0)
@@ -212,6 +101,7 @@ _SPECIAL_SHIFTED = re.compile(r"[!@$%^*(]")  # how upstream encodes shifted numb
 def findVelocityKey(velocity: int) -> str:
     velocityMap = configuration.configData["midiPlayer"]["pianoMap"]["velocityMap"]
     thresholds = sorted(int(k) for k in velocityMap.keys())
+    # binary-ish search like upstream
     minimum = 0
     maximum = len(thresholds) - 1
     index = 0
@@ -266,6 +156,8 @@ def _resolveMappedKey(note: int):
 def simulateKey(msgType: str, note: int, velocity: int):
     key, letterNoteMap = _resolveMappedKey(note)
     if key is None:
+        # keep log quiet for performance; uncomment if needed:
+        # log(f"out of range: {note}")
         return
 
     # NOTE ON
@@ -280,16 +172,16 @@ def simulateKey(msgType: str, note: int, velocity: int):
 
         # Determine whether to use ctrl/shift logic like upstream
         if 36 <= note <= 96:
-            # no doubles logic
+            # no doubles logic (prevents adjacent key overlap in some maps)
             if configuration.configData["midiPlayer"]["noDoubles"]:
-                if _SPECIAL_SHIFTED.search(str(key)):
-                    prev = letterNoteMap.get(str(note - 1))
-                    if prev:
-                        release(prev)
+                if _SPECIAL_SHIFTED.search(key):
+                    # symbol keys represent "shift + previous note key"
+                    release(letterNoteMap.get(str(note - 1), "").lower())
                 else:
-                    release(str(key))
+                    release(str(key).lower())
 
-            if _SPECIAL_SHIFTED.search(str(key)):
+            if _SPECIAL_SHIFTED.search(key):
+                # Represent shifted symbol by shift + previous key in map
                 prev_key = letterNoteMap.get(str(note - 1))
                 if prev_key:
                     press("shift")
@@ -302,23 +194,25 @@ def simulateKey(msgType: str, note: int, velocity: int):
             else:
                 pressAndMaybeRelease(key)
         else:
-            release(str(key))
+            # outside core range uses Ctrl modifier (octave shift in some games)
+            release(str(key).lower())
             press("ctrl")
-            pressAndMaybeRelease(str(key))
+            pressAndMaybeRelease(str(key).lower())
             release("ctrl")
+
         return
 
     # NOTE OFF
     if msgType == "note_off":
         if 36 <= note <= 96:
-            if _SPECIAL_SHIFTED.search(str(key)):
+            if _SPECIAL_SHIFTED.search(key):
                 prev_key = letterNoteMap.get(str(note - 1))
                 if prev_key:
                     release(prev_key)
             else:
-                release(str(key))
+                release(str(key).lower())
         else:
-            release(str(key))
+            release(str(key).lower())
 
 
 def parseMidi(message):
@@ -342,56 +236,6 @@ def parseMidi(message):
         except IndexError:
             pass
     return sustainActive
-
-
-# ------------------------
-# DISPATCH (includes transpose fail logic)
-# ------------------------
-
-def dispatch_message(msg):
-    """
-    Dispatch a message through transpose/randomFail logic then into parseMidi().
-    This keeps behavior consistent while allowing chord-block humanization.
-    """
-    # meta already filtered by caller, but keep safe:
-    if msg.is_meta:
-        return
-
-    # sustain changes should not be randomized/shifted:
-    if msg.type == "control_change":
-        parseMidi(msg)
-        return
-
-    # transpose logic (matches upstream)
-    if hasattr(msg, "note"):
-        if msg.type == "note_on" and getattr(msg, "velocity", 0) > 0:
-            if (
-                configuration.configData["midiPlayer"]["randomFail"]["enabled"]
-                and random.random() < configuration.configData["midiPlayer"]["randomFail"]["transpose"] / 100
-            ):
-                delta = random.randint(-12, 12)
-                newNote = msg.note + delta
-                activeTransposedNotes.setdefault(msg.note, []).append(newNote)
-
-                original = msg.note
-                msg.note = newNote
-                parseMidi(msg)
-                msg.note = original
-                return
-
-        if msg.type == "note_off" or (msg.type == "note_on" and getattr(msg, "velocity", 0) == 0):
-            if msg.note in activeTransposedNotes and activeTransposedNotes[msg.note]:
-                transNote = activeTransposedNotes[msg.note].pop(0)
-                if not activeTransposedNotes[msg.note]:
-                    del activeTransposedNotes[msg.note]
-
-                original = msg.note
-                msg.note = transNote
-                parseMidi(msg)
-                msg.note = original
-                return
-
-    parseMidi(msg)
 
 
 # ------------------------
@@ -431,24 +275,15 @@ def clockThread(totalSeconds: float, updateCallback=None):
 
 
 def playMidiOnce(midiFile: str):
-    """Play once with pause-aware timing and upstream randomFail/transpose logic + chord humanizer."""
+    """Play once with pause-aware timing and upstream randomFail/transpose logic."""
     global sustainActive, paused
 
     mid = mido.MidiFile(midiFile, clip=True)
-    it = iter(mid)
-
     startTime = time.monotonic()
-    currentTime = 0.0
+    currentTime = 0
     wasPaused = False
 
-    pending = None
-
-    while True:
-        msg = pending if pending is not None else next(it, None)
-        pending = None
-        if msg is None:
-            break
-
+    for msg in mid:
         if stopEvent.is_set() or closeThread:
             return False
 
@@ -488,8 +323,7 @@ def playMidiOnce(midiFile: str):
 
             remaining = targetTime - time.monotonic()
             if remaining > 0:
-                # tighter timing (less "chunky" than 5ms)
-                time.sleep(min(remaining, 0.001))
+                time.sleep(min(remaining, 0.005))
 
         if msg.is_meta:
             continue
@@ -505,21 +339,37 @@ def playMidiOnce(midiFile: str):
                     sustainActive = False
             continue
 
-        # Build a same-timestamp block (delta-time == 0)
-        block = [msg]
-        while True:
-            nxt = next(it, None)
-            if nxt is None:
-                pending = None
-                break
-            if nxt.time == 0:
-                block.append(nxt)
-                continue
-            pending = nxt
-            break
+        # random fail transpose (note_on only)
+        if hasattr(msg, "note"):
+            if msg.type == "note_on" and msg.velocity > 0:
+                if (
+                    configuration.configData["midiPlayer"]["randomFail"]["enabled"]
+                    and random.random() < configuration.configData["midiPlayer"]["randomFail"]["transpose"] / 100
+                ):
+                    delta = random.randint(-12, 12)
+                    newNote = msg.note + delta
+                    activeTransposedNotes.setdefault(msg.note, []).append(newNote)
 
-        # Humanize and dispatch that block
-        humanize_block(block)
+                    original = msg.note
+                    msg.note = newNote
+                    parseMidi(msg)
+                    msg.note = original
+                    continue
+
+            # ensure note_off matches transposed note
+            if msg.type == "note_off" or (msg.type == "note_on" and msg.velocity == 0):
+                if msg.note in activeTransposedNotes and activeTransposedNotes[msg.note]:
+                    transNote = activeTransposedNotes[msg.note].pop(0)
+                    if not activeTransposedNotes[msg.note]:
+                        del activeTransposedNotes[msg.note]
+
+                    original = msg.note
+                    msg.note = transNote
+                    parseMidi(msg)
+                    msg.note = original
+                    continue
+
+        parseMidi(msg)
 
     return True
 
@@ -530,12 +380,8 @@ def playMidiFile(midiFile: str):
 
     while not (stopEvent.is_set() or closeThread):
         finished = playMidiOnce(midiFile)
-
-        if not configuration.configData["midiPlayer"]["loopSong"]:
+        if not configuration.configData["midiPlayer"]["loopSong"] or not finished or stopEvent.is_set() or closeThread:
             break
-        if not finished:
-            break
-
         release_all()
 
     # ensure UI is reset

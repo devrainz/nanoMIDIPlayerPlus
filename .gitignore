@@ -3,6 +3,10 @@
 /venv-mac/
 /venv-lnx/
 __pycache__/
+*.zip
+*.tar.gz
+dist/
 /*.mid
 *.mid
 temp_icon.ico
+build-lnx.sh

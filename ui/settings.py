@@ -2,7 +2,7 @@ import customtkinter as ctk
 import platform
 import os
 
-from ui import customTheme
+import ui.customTheme as customTheme
 from ui.widget.tooltip import ToolTip
 from modules import configuration
 from modules.functions import mainFunctions
@@ -24,12 +24,18 @@ class SettingsTab(ctk.CTkFrame):
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
-        self.mainScrollFrame = mainFunctions.ScrollableFrame(
-            self, corner_radius=0, 
-            fg_color=customTheme.activeThemeData["Theme"]["Settings"]["BackgroundColor"]
+        self.mainScrollFrame = ctk.CTkScrollableFrame(
+            self,
+            corner_radius=0,
+            fg_color=customTheme.activeThemeData["Theme"]["Settings"]["BackgroundColor"],
         )
         self.mainScrollFrame.grid(row=0, column=0, sticky="nsew")
-        self.mainScrollFrame.grid_rowconfigure(0, weight=1)
+        for i in range(6):
+            self.mainScrollFrame.grid_columnconfigure(0, weight=1)
+            self.mainScrollFrame.grid_columnconfigure(1, weight=1)
+            self.mainScrollFrame.grid_columnconfigure(2, weight=1)
+            self.mainScrollFrame.grid_columnconfigure(3, weight=1)
+
         self.__class__.mainScrollFrame = self.mainScrollFrame
 
         if osName == "Linux":
@@ -37,12 +43,13 @@ class SettingsTab(ctk.CTkFrame):
             self.mainScrollFrame.bind_all("<Button-5>", lambda e: self.mainScrollFrame._parent_canvas.yview("scroll", 1, "units"))
 
         # QWERTY SECTION
-        self.qwertySettingsLabel = ctk.CTkLabel(
-            self.mainScrollFrame, text="MIDI Player Settings", fg_color="transparent", 
-            font=customTheme.globalFont20, 
-            text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"]
+        midiSection = ctk.CTkFrame(
+            self.mainScrollFrame,
+            fg_color="transparent"
         )
-        self.qwertySettingsLabel.grid(row=0, column=0, padx=(10, 0), pady=(10, 0), sticky="w")
+        midiSection.grid(row=0, column=0, sticky="nsew")
+        for i in range(6):
+            midiSection.grid_columnconfigure(i, weight=1)
 
         self.sustainToggle = ctk.CTkSwitch(
             self.mainScrollFrame, text="Sustain", command=midiPlayerFunctions.switchSustain, variable=midiPlayerFunctions.switchSustainvar, 
@@ -54,7 +61,7 @@ class SettingsTab(ctk.CTkFrame):
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"], 
             text_color_disabled=customTheme.activeThemeData["Theme"]["Settings"]["TextColorDisabled"]
         )
-        self.sustainToggle.grid(row=1, column=0, padx=(20, 0), pady=(5, 0), sticky="w")
+        self.sustainToggle.grid(row=1, column=0, padx=20, pady=(5, 0), sticky="ew")
         self.__class__.sustainToggle = self.sustainToggle
         ToolTip.CreateToolTip(self.sustainToggle, text = 'Simulates Pedal by "Spacebar"\nOnly works on supported games.')
 
@@ -68,7 +75,7 @@ class SettingsTab(ctk.CTkFrame):
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"], 
             text_color_disabled=customTheme.activeThemeData["Theme"]["Settings"]["TextColorDisabled"]
         )
-        self.noDoublesToggle.grid(row=2, column=0, padx=(20, 0), pady=(5, 0), sticky="w")
+        self.noDoublesToggle.grid(row=2, column=0, padx=20, pady=(5, 0), sticky="ew")
         self.__class__.noDoublesToggle = self.noDoublesToggle
         ToolTip.CreateToolTip(self.noDoublesToggle, text = 'Prevents double-triggering of keys')
 
@@ -152,44 +159,44 @@ class SettingsTab(ctk.CTkFrame):
         ToolTip.CreateToolTip(self.midiCustomHoldLengthToggle, text = 'Custom Note Hold Length')
 
         self.midiNoteLengthLabel = ctk.CTkLabel(
-            self.mainScrollFrame, text="Note Length", fg_color="transparent", 
+            midiSection, text="Note Length", fg_color="transparent", 
             font=customTheme.globalFont14, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"]
         )
-        self.midiNoteLengthLabel.grid(row=2, column=0, padx=(212, 0), pady=(0, 0), sticky="nw")
+        self.midiNoteLengthLabel.grid(row=0, column=1, padx=10, sticky="w")
         self.__class__.midiNoteLengthLabel = self.midiNoteLengthLabel
 
         self.midiNoteLengthSlider = ctk.CTkSlider(
-            self.mainScrollFrame, from_=0, to=10, width=200, command=lambda value: settingsFunctions.updateFromSlider("midiNoteLength", value), 
+            midiSection, from_=0, to=10, width=200, command=lambda value: settingsFunctions.updateFromSlider("midiNoteLength", value), 
             fg_color=customTheme.activeThemeData["Theme"]["Settings"]["SliderBackColor"], 
             progress_color=customTheme.activeThemeData["Theme"]["Settings"]["SliderFillColor"], 
             button_color=customTheme.activeThemeData["Theme"]["Settings"]["SliderCircleColor"], 
             button_hover_color=customTheme.activeThemeData["Theme"]["Settings"]["SliderCircleHoverColor"]
         )
-        self.midiNoteLengthSlider.grid(row=3, column=0, padx=(207,0), pady=(0, 0), sticky="nw")
+        self.midiNoteLengthSlider.grid(row=0, column=2, padx=10, sticky="ew")
         self.midiNoteLengthSlider.set(configuration.configData['midiPlayer']['randomFail']['speed'])
         self.__class__.midiNoteLengthSlider = self.midiNoteLengthSlider
         ToolTip.CreateToolTip(self.midiNoteLengthSlider, text = 'Custom Note Hold Length')
 
         self.midiResetNoteLength = ctk.CTkButton(
-            self.mainScrollFrame, image=customTheme.resetImageCTk, text="", width=30, 
+            midiSection, image=customTheme.resetImageCTk, text="", width=30, 
             command=lambda: settingsFunctions.resetControl("midiNoteLength"), font=customTheme.globalFont14, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"], 
             fg_color=customTheme.activeThemeData["Theme"]["Settings"]["ButtonColor"], 
             hover_color=customTheme.activeThemeData["Theme"]["Settings"]["ButtonHoverColor"]
         )
-        self.midiResetNoteLength.grid(row=2, column=0, padx=(370, 0), pady=(0, 0), sticky="nw")
+        self.midiResetNoteLength.grid(row=0, column=4, padx=10)
         self.__class__.midiResetNoteLength = self.midiResetNoteLength
         ToolTip.CreateToolTip(self.midiResetNoteLength, text = 'Reset Note Hold Length')
 
         self.midiNoteLengthEntry = ctk.CTkEntry(
-            self.mainScrollFrame, placeholder_text="10", width=60,
+            midiSection, placeholder_text="10", width=60,
             font=customTheme.globalFont14, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"], 
             border_color=customTheme.activeThemeData["Theme"]["Settings"]["ValueBoxBorderColor"], 
             fg_color=customTheme.activeThemeData["Theme"]["Settings"]["ValueBoxBackColor"]
         )
-        self.midiNoteLengthEntry.grid(row=2, column=0, padx=(307, 0), pady=(0, 0), sticky="nw")
+        self.midiNoteLengthEntry.grid(row=0, column=3, padx=10)
         self.midiNoteLengthEntry.insert(0, configuration.configData['midiPlayer']['customHoldLength']['noteLength'])
         self.__class__.midiNoteLengthEntry = self.midiNoteLengthEntry
         ToolTip.CreateToolTip(self.midiNoteLengthEntry, text = 'Custom Note Hold Length Value')
@@ -216,7 +223,7 @@ class SettingsTab(ctk.CTkFrame):
             font=customTheme.globalFont14, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"]
         )
-        self.midiSpeedFailLabel.grid(row=4, column=0, padx=(150,0), pady=(0, 0), sticky="nw")
+        self.midiSpeedFailLabel.grid(row=4, column=1)
         self.__class__.midiSpeedFailLabel = self.midiSpeedFailLabel
 
         self.midiSpeedFailSlider = ctk.CTkSlider(
@@ -263,7 +270,7 @@ class SettingsTab(ctk.CTkFrame):
             font=customTheme.globalFont14, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"]
         )
-        self.midiTransposeFailLabel.grid(row=4, column=0, padx=(85,0), pady=(0, 0), sticky="n")
+        self.midiTransposeFailLabel.grid(row=4, column=0)
         self.__class__.midiTransposeFailLabel = self.midiTransposeFailLabel
 
         self.midiTransposeFailSlider = ctk.CTkSlider(
@@ -379,14 +386,14 @@ class SettingsTab(ctk.CTkFrame):
 
         # DRUMS MACRO SECTION
         self.drumsSettingsLabel = ctk.CTkLabel(
-            self.mainScrollFrame, text="Drums Macro Settings", fg_color="transparent", 
+            midiSection, text="Drums Macro Settings", fg_color="transparent", 
             font=customTheme.globalFont20, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"]
         )
-        self.drumsSettingsLabel.grid(row=7, column=0, padx=(10, 0), pady=(10, 0), sticky="w")
+        self.drumsSettingsLabel.grid(row=7, column=0, padx=(10, 0), pady=(10, 0), sticky="ew")
 
         self.drumsLoopSongToggle = ctk.CTkSwitch(
-            self.mainScrollFrame, text="Loop Song", command=settingsFunctions.switchDrumsLoopSong, variable=settingsFunctions.switchDrumsLoopSongvar, 
+            midiSection, text="Loop Song", command=settingsFunctions.switchDrumsLoopSong, variable=settingsFunctions.switchDrumsLoopSongvar, 
             font=customTheme.globalFont14, onvalue="on", offvalue="off", 
             fg_color=customTheme.activeThemeData["Theme"]["Settings"]["SwitchDisabled"], 
             progress_color=customTheme.activeThemeData["Theme"]["Settings"]["SwitchEnabled"], 
@@ -400,7 +407,7 @@ class SettingsTab(ctk.CTkFrame):
         ToolTip.CreateToolTip(self.drumsLoopSongToggle, text = 'Restart the song once the song ends')
 
         self.drumsReleaseOnPauseToggle = ctk.CTkSwitch(
-            self.mainScrollFrame, text="Release\nkeys on Pause", command=settingsFunctions.switchDrumsReleaseOnPause, variable=settingsFunctions.switchDrumsReleaseOnPausevar, 
+            midiSection, text="Release\nkeys on Pause", command=settingsFunctions.switchDrumsReleaseOnPause, variable=settingsFunctions.switchDrumsReleaseOnPausevar, 
             font=customTheme.globalFont14, onvalue="on", offvalue="off", 
             fg_color=customTheme.activeThemeData["Theme"]["Settings"]["SwitchDisabled"], 
             progress_color=customTheme.activeThemeData["Theme"]["Settings"]["SwitchEnabled"], 
@@ -414,7 +421,7 @@ class SettingsTab(ctk.CTkFrame):
         ToolTip.CreateToolTip(self.drumsReleaseOnPauseToggle, text = 'Release held keys when song is paused')
 
         self.drumsClearMidiListButton = ctk.CTkButton(
-            self.mainScrollFrame, text="Clear MIDI List", width=159, command=settingsFunctions.drumsClearMidiList, 
+            midiSection, text="Clear MIDI List", width=159, command=settingsFunctions.drumsClearMidiList, 
             font=customTheme.globalFont14, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"], 
             fg_color=customTheme.activeThemeData["Theme"]["Settings"]["ButtonColor"], 
@@ -424,7 +431,7 @@ class SettingsTab(ctk.CTkFrame):
         ToolTip.CreateToolTip(self.drumsClearMidiListButton, text = 'Clear MIDI Dropdown List')
 
         self.drumsCustomHoldLengthToggle = ctk.CTkSwitch(
-            self.mainScrollFrame, text="Custom Hold Length", command=settingsFunctions.switchDrumsCustomHoldLength, variable=settingsFunctions.switchDrumsCustomHoldLengthvar, 
+            midiSection, text="Custom Hold Length", command=settingsFunctions.switchDrumsCustomHoldLength, variable=settingsFunctions.switchDrumsCustomHoldLengthvar, 
             font=customTheme.globalFont14, onvalue="on", offvalue="off", 
             fg_color=customTheme.activeThemeData["Theme"]["Settings"]["SwitchDisabled"], 
             progress_color=customTheme.activeThemeData["Theme"]["Settings"]["SwitchEnabled"], 
@@ -437,7 +444,7 @@ class SettingsTab(ctk.CTkFrame):
         ToolTip.CreateToolTip(self.drumsCustomHoldLengthToggle, text = 'Custom Note Hold Length')
 
         self.drumsNoteLengthLabel = ctk.CTkLabel(
-            self.mainScrollFrame, text="Note Length", fg_color="transparent", 
+            midiSection, text="Note Length", fg_color="transparent", 
             font=customTheme.globalFont14, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"]
         )
@@ -445,7 +452,7 @@ class SettingsTab(ctk.CTkFrame):
         self.__class__.drumsNoteLengthLabel = self.drumsNoteLengthLabel
 
         self.drumsNoteLengthSlider = ctk.CTkSlider(
-            self.mainScrollFrame, from_=0, to=10, width=200, command=lambda value: settingsFunctions.updateFromSlider("drumsNoteLength", value), 
+            midiSection, from_=0, to=10, width=200, command=lambda value: settingsFunctions.updateFromSlider("drumsNoteLength", value), 
             fg_color=customTheme.activeThemeData["Theme"]["Settings"]["SliderBackColor"], 
             progress_color=customTheme.activeThemeData["Theme"]["Settings"]["SliderFillColor"], 
             button_color=customTheme.activeThemeData["Theme"]["Settings"]["SliderCircleColor"], 
@@ -457,7 +464,7 @@ class SettingsTab(ctk.CTkFrame):
         ToolTip.CreateToolTip(self.drumsNoteLengthSlider, text = 'Custom Note Hold Length')
 
         self.drumsResetNoteLength = ctk.CTkButton(
-            self.mainScrollFrame, image=customTheme.resetImageCTk, text="", width=30, 
+            midiSection, image=customTheme.resetImageCTk, text="", width=30, 
             command=lambda: settingsFunctions.resetControl("drumsNoteLength"), font=customTheme.globalFont14, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"], 
             fg_color=customTheme.activeThemeData["Theme"]["Settings"]["ButtonColor"], 
@@ -468,7 +475,7 @@ class SettingsTab(ctk.CTkFrame):
         ToolTip.CreateToolTip(self.drumsResetNoteLength, text = 'Reset Note Hold Length')
 
         self.drumsNoteLengthEntry = ctk.CTkEntry(
-            self.mainScrollFrame, placeholder_text="10", width=60, 
+            midiSection, placeholder_text="10", width=60, 
             font=customTheme.globalFont14, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"], 
             border_color=customTheme.activeThemeData["Theme"]["Settings"]["ValueBoxBorderColor"], 
@@ -484,7 +491,7 @@ class SettingsTab(ctk.CTkFrame):
         self.drumsNoteLengthSlider.bind("<ButtonRelease-1>", lambda value: settingsFunctions.updateFromEntry("drumsNoteLength", value))
 
         self.drumsRandomFailToggle = ctk.CTkSwitch(
-            self.mainScrollFrame, text="Random Fail", command=settingsFunctions.switchDrumsRandomFail, variable=settingsFunctions.switchDrumsRandomFailvar, 
+            midiSection, text="Random Fail", command=settingsFunctions.switchDrumsRandomFail, variable=settingsFunctions.switchDrumsRandomFailvar, 
             font=customTheme.globalFont14, onvalue="on", offvalue="off", 
             fg_color=customTheme.activeThemeData["Theme"]["Settings"]["SwitchDisabled"], 
             progress_color=customTheme.activeThemeData["Theme"]["Settings"]["SwitchEnabled"], 
@@ -497,7 +504,7 @@ class SettingsTab(ctk.CTkFrame):
         ToolTip.CreateToolTip(self.drumsRandomFailToggle, text = 'Randomly fail notes (human error)')
 
         self.drumsSpeedFailLabel = ctk.CTkLabel(
-            self.mainScrollFrame, text="Speed Fail %", fg_color="transparent", 
+            midiSection, text="Speed Fail %", fg_color="transparent", 
             font=customTheme.globalFont14, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"]
         )
@@ -505,7 +512,7 @@ class SettingsTab(ctk.CTkFrame):
         self.__class__.drumsSpeedFailLabel = self.drumsSpeedFailLabel
 
         self.drumsSpeedFailSlider = ctk.CTkSlider(
-            self.mainScrollFrame, from_=0, to=100, width=200, command=lambda value: settingsFunctions.updateFromSlider("drumsSpeedFail", value), 
+            midiSection, from_=0, to=100, width=200, command=lambda value: settingsFunctions.updateFromSlider("drumsSpeedFail", value), 
             fg_color=customTheme.activeThemeData["Theme"]["Settings"]["SliderBackColor"], 
             progress_color=customTheme.activeThemeData["Theme"]["Settings"]["SliderFillColor"], 
             button_color=customTheme.activeThemeData["Theme"]["Settings"]["SliderCircleColor"], 
@@ -517,7 +524,7 @@ class SettingsTab(ctk.CTkFrame):
         ToolTip.CreateToolTip(self.drumsSpeedFailSlider, text = 'Speed fail chance')
 
         self.drumsResetSpeedFailButton = ctk.CTkButton(
-            self.mainScrollFrame, image=customTheme.resetImageCTk, text="", width=30, 
+            midiSection, image=customTheme.resetImageCTk, text="", width=30, 
             command=lambda: settingsFunctions.resetControl("drumsSpeedFail"), font=customTheme.globalFont14, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"], 
             fg_color=customTheme.activeThemeData["Theme"]["Settings"]["ButtonColor"], 
@@ -528,7 +535,7 @@ class SettingsTab(ctk.CTkFrame):
         ToolTip.CreateToolTip(self.drumsResetSpeedFailButton, text = 'Speed fail chance value')
 
         self.drumsSpeedFailEntry = ctk.CTkEntry(
-            self.mainScrollFrame, placeholder_text="10", width=50, 
+            midiSection, placeholder_text="10", width=50, 
             font=customTheme.globalFont14, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"], 
             border_color=customTheme.activeThemeData["Theme"]["Settings"]["ValueBoxBorderColor"], 
@@ -544,14 +551,14 @@ class SettingsTab(ctk.CTkFrame):
         self.drumsSpeedFailSlider.bind("<ButtonRelease-1>", lambda value: settingsFunctions.updateFromEntry("drumsSpeedFail", value))
 
         self.drumsDecreaseSizeLabel = ctk.CTkLabel(
-            self.mainScrollFrame, text="Speed Hotkey\nDecrease Size", fg_color="transparent", 
+            midiSection, text="Speed Hotkey\nDecrease Size", fg_color="transparent", 
             font=customTheme.globalFont14, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"]
         )
         self.drumsDecreaseSizeLabel.grid(row=11, column=0, padx=(25, 0), pady=(0, 0), sticky="nw")
 
         self.drumsDecreaseSizeSlider = ctk.CTkSlider(
-            self.mainScrollFrame, from_=0, to=100, width=190, command=lambda value: settingsFunctions.updateFromSlider("drumsDecreaseSize", value), 
+            midiSection, from_=0, to=100, width=190, command=lambda value: settingsFunctions.updateFromSlider("drumsDecreaseSize", value), 
             fg_color=customTheme.activeThemeData["Theme"]["Settings"]["SliderBackColor"], 
             progress_color=customTheme.activeThemeData["Theme"]["Settings"]["SliderFillColor"], 
             button_color=customTheme.activeThemeData["Theme"]["Settings"]["SliderCircleColor"], 
@@ -563,7 +570,7 @@ class SettingsTab(ctk.CTkFrame):
         ToolTip.CreateToolTip(self.drumsDecreaseSizeSlider, text = 'Speed Up/Slow Down hotkey\ndecrease size')
 
         self.drumsResetDecreaseSize = ctk.CTkButton(
-            self.mainScrollFrame, image=customTheme.resetImageCTk, text="", width=30, 
+            midiSection, image=customTheme.resetImageCTk, text="", width=30, 
             command=lambda: settingsFunctions.resetControl("drumsDecreaseSize"), font=customTheme.globalFont14, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"], 
             fg_color=customTheme.activeThemeData["Theme"]["Settings"]["ButtonColor"], 
@@ -573,7 +580,7 @@ class SettingsTab(ctk.CTkFrame):
         ToolTip.CreateToolTip(self.drumsResetDecreaseSize, text = 'Reset decrease size value')
 
         self.drumsDecreaseSizeEntry = ctk.CTkEntry(
-            self.mainScrollFrame, placeholder_text="10", width=35, 
+            midiSection, placeholder_text="10", width=35, 
             font=customTheme.globalFont14, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"], 
             border_color=customTheme.activeThemeData["Theme"]["Settings"]["ValueBoxBorderColor"], 
@@ -589,14 +596,14 @@ class SettingsTab(ctk.CTkFrame):
         self.drumsDecreaseSizeSlider.bind("<ButtonRelease-1>", lambda value: settingsFunctions.updateFromEntry("drumsDecreaseSize", value))
 
         self.drumsModuleSelectorText = ctk.CTkLabel(
-            self.mainScrollFrame, text="Keyboard Module", fg_color="transparent", 
+            midiSection, text="Keyboard Module", fg_color="transparent", 
             font=customTheme.globalFont14, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"]
         )
         self.drumsModuleSelectorText.grid(row=10, column=0, padx=(25, 0), pady=(0, 35), sticky="sw")
 
         self.drumsModuleSelector = ctk.CTkOptionMenu(
-            self.mainScrollFrame, width=200, command=settingsFunctions.drumsModuleSelect, values=["pynput", "keyboard"], 
+            midiSection, width=200, command=settingsFunctions.drumsModuleSelect, values=["pynput", "keyboard"], 
             font=customTheme.globalFont14, dropdown_font=customTheme.globalFont14, 
             fg_color=customTheme.activeThemeData["Theme"]["Settings"]["OptionBackColor"], 
             dropdown_fg_color=customTheme.activeThemeData["Theme"]["Settings"]["OptionDropdownBackground"], 
@@ -617,14 +624,14 @@ class SettingsTab(ctk.CTkFrame):
 
         # APPEARANCE SETTINGS
         self.appUISettingsLabel = ctk.CTkLabel(
-            self.mainScrollFrame, text="Appearance Settings", fg_color="transparent", 
+            midiSection, text="Appearance Settings", fg_color="transparent", 
             font=customTheme.globalFont20, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"]
         )
-        self.appUISettingsLabel.grid(row=12, column=0, padx=(10, 0), pady=(10, 0), sticky="w")
+        self.appUISettingsLabel.grid(row=12, column=0, padx=(10, 0), pady=(10, 0), sticky="ew")
 
         self.topMostToggle = ctk.CTkSwitch(
-            self.mainScrollFrame, text="Always on top", command=settingsFunctions.switchTopMost, variable=settingsFunctions.switchTopMostvar, 
+            midiSection, text="Always on top", command=settingsFunctions.switchTopMost, variable=settingsFunctions.switchTopMostvar, 
             font=customTheme.globalFont14, onvalue="on", offvalue="off", 
             fg_color=customTheme.activeThemeData["Theme"]["Settings"]["SwitchDisabled"], 
             progress_color=customTheme.activeThemeData["Theme"]["Settings"]["SwitchEnabled"], 
@@ -637,7 +644,7 @@ class SettingsTab(ctk.CTkFrame):
         ToolTip.CreateToolTip(self.topMostToggle, text = 'Window always remains on top of\nall other windows on the screen')
 
         self.consoleToggle = ctk.CTkSwitch(
-            self.mainScrollFrame, text="Console", command=settingsFunctions.switchConsole, variable=settingsFunctions.switchConsolevar, 
+            midiSection, text="Console", command=settingsFunctions.switchConsole, variable=settingsFunctions.switchConsolevar, 
             font=customTheme.globalFont14, onvalue="on", offvalue="off", 
             fg_color=customTheme.activeThemeData["Theme"]["Settings"]["SwitchDisabled"], 
             progress_color=customTheme.activeThemeData["Theme"]["Settings"]["SwitchEnabled"], 
@@ -650,7 +657,7 @@ class SettingsTab(ctk.CTkFrame):
         ToolTip.CreateToolTip(self.consoleToggle, text = 'Toggles the Console UI from MIDI/Drums/MID2QWERTY tab')
 
         self.tooltipToggle = ctk.CTkSwitch(
-            self.mainScrollFrame, text="Tool Tip", command=settingsFunctions.switchToolTip, variable=settingsFunctions.switchToolTipvar, 
+            midiSection, text="Tool Tip", command=settingsFunctions.switchToolTip, variable=settingsFunctions.switchToolTipvar, 
             font=customTheme.globalFont14, onvalue="on", offvalue="off", 
             fg_color=customTheme.activeThemeData["Theme"]["Settings"]["SwitchDisabled"], 
             progress_color=customTheme.activeThemeData["Theme"]["Settings"]["SwitchEnabled"], 
@@ -663,7 +670,7 @@ class SettingsTab(ctk.CTkFrame):
         ToolTip.CreateToolTip(self.tooltipToggle, text = 'Toggles this message off')
 
         self.timestampToggle = ctk.CTkSwitch(
-            self.mainScrollFrame, text="Timestamp", command=settingsFunctions.switchTimestamp, variable=settingsFunctions.switchTimestampvar, 
+            midiSection, text="Timestamp", command=settingsFunctions.switchTimestamp, variable=settingsFunctions.switchTimestampvar, 
             font=customTheme.globalFont14, onvalue="on", offvalue="off", 
             fg_color=customTheme.activeThemeData["Theme"]["Settings"]["SwitchDisabled"], 
             progress_color=customTheme.activeThemeData["Theme"]["Settings"]["SwitchEnabled"], 
@@ -676,7 +683,7 @@ class SettingsTab(ctk.CTkFrame):
         ToolTip.CreateToolTip(self.timestampToggle, text = 'Toggles the updates of the timestamp text')
 
         self.checkForUpdatesToggle = ctk.CTkSwitch(
-            self.mainScrollFrame, text="Check For Updates", command=settingsFunctions.switchCheckForUpdates, variable=settingsFunctions.switchCheckForUpdatesvar, 
+            midiSection, text="Check For Updates", command=settingsFunctions.switchCheckForUpdates, variable=settingsFunctions.switchCheckForUpdatesvar, 
             font=customTheme.globalFont14, onvalue="on", offvalue="off", 
             fg_color=customTheme.activeThemeData["Theme"]["Settings"]["SwitchDisabled"], 
             progress_color=customTheme.activeThemeData["Theme"]["Settings"]["SwitchEnabled"], 
@@ -690,7 +697,7 @@ class SettingsTab(ctk.CTkFrame):
 
         # DEBUG
         self.openConsoleButton = ctk.CTkButton(
-            self.mainScrollFrame, text="Open Debug\nConsole", width=120, command=settingsFunctions.openConsole, 
+            midiSection, text="Open Debug\nConsole", width=120, command=settingsFunctions.openConsole, 
             font=customTheme.globalFont14, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"], 
             fg_color=customTheme.activeThemeData["Theme"]["Settings"]["ButtonColor"], 
@@ -700,7 +707,7 @@ class SettingsTab(ctk.CTkFrame):
         ToolTip.CreateToolTip(self.openConsoleButton, text = 'Opens a Console window with debugging (Windows only)')
 
         self.closeConsoleButton = ctk.CTkButton(
-            self.mainScrollFrame, text="Close Debug\nConsole", width=120, command=settingsFunctions.closeConsole, 
+            midiSection, text="Close Debug\nConsole", width=120, command=settingsFunctions.closeConsole, 
             font=customTheme.globalFont14, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"], 
             fg_color=customTheme.activeThemeData["Theme"]["Settings"]["ButtonColor"], 
@@ -716,14 +723,14 @@ class SettingsTab(ctk.CTkFrame):
         app = mainFunctions.getApp()
 
         self.themeSelectorLabel = ctk.CTkLabel(
-            self.mainScrollFrame, text="App Theme", fg_color="transparent", 
+            midiSection, text="App Theme", fg_color="transparent", 
             font=customTheme.globalFont20, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"]
         )
-        self.themeSelectorLabel.grid(row=14, column=0, padx=(20, 0), pady=(10, 0), sticky="w")
+        self.themeSelectorLabel.grid(row=14, column=0, padx=(20, 0), pady=(10, 0), sticky="ew")
 
         self.forceThemeToggle = ctk.CTkSwitch(
-            self.mainScrollFrame, text="Force API Theme", command=settingsFunctions.switchForceTheme, variable=settingsFunctions.switchForceThemevar,
+            midiSection, text="Force API Theme", command=settingsFunctions.switchForceTheme, variable=settingsFunctions.switchForceThemevar,
             font=customTheme.globalFont14, onvalue="on", offvalue="off",
             fg_color=customTheme.activeThemeData["Theme"]["Settings"]["SwitchDisabled"],
             progress_color=customTheme.activeThemeData["Theme"]["Settings"]["SwitchEnabled"],
@@ -768,101 +775,101 @@ class SettingsTab(ctk.CTkFrame):
 
         # HOTKEY SECTION
         self.hotkeySettingsLabel = ctk.CTkLabel(
-            self.mainScrollFrame, text="Hotkey Settings", fg_color="transparent", 
+            midiSection, text="Hotkey Settings", fg_color="transparent", 
             font=customTheme.globalFont20, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"]
         )
-        self.hotkeySettingsLabel.grid(row=20, column=0, padx=(10, 0), pady=(10, 0), sticky="w")
+        self.hotkeySettingsLabel.grid(row=20, column=0, padx=(10, 0), pady=(10, 0), sticky="ew")
 
         # HOTKEY LABELS
         self.playHotkeyLabel = ctk.CTkLabel(
-            self.mainScrollFrame, text="Play", fg_color="transparent", 
+            midiSection, text="Play", fg_color="transparent", 
             font=customTheme.globalFont14, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"]
         )
-        self.playHotkeyLabel.grid(row=21, column=0, padx=(33, 0), pady=(0, 0), sticky="w")
+        self.playHotkeyLabel.grid(row=21, column=0, padx=(33, 0), pady=(0, 0), sticky="ew")
 
         self.pauseHotkeyLabel = ctk.CTkLabel(
-            self.mainScrollFrame, text="Pause", fg_color="transparent", 
+            midiSection, text="Pause", fg_color="transparent", 
             font=customTheme.globalFont14, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"]
         )
-        self.pauseHotkeyLabel.grid(row=21, column=0, padx=(110, 0), pady=(0, 0), sticky="w")
+        self.pauseHotkeyLabel.grid(row=21, column=0, padx=(110, 0), pady=(0, 0), sticky="ew")
 
         self.stopHotkeyLabel = ctk.CTkLabel(
-            self.mainScrollFrame, text="Stop", fg_color="transparent", 
+            midiSection, text="Stop", fg_color="transparent", 
             font=customTheme.globalFont14, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"]
         )
-        self.stopHotkeyLabel.grid(row=21, column=0, padx=(193, 0), pady=(0, 0), sticky="w")
+        self.stopHotkeyLabel.grid(row=21, column=0, padx=(193, 0), pady=(0, 0), sticky="ew")
 
         self.slowDownHotkeyLabel = ctk.CTkLabel(
-            self.mainScrollFrame, text="Slow Down", fg_color="transparent", 
+            midiSection, text="Slow Down", fg_color="transparent", 
             font=customTheme.globalFont14, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"]
         )
-        self.slowDownHotkeyLabel.grid(row=21, column=0, padx=(254, 0), pady=(0, 0), sticky="w")
+        self.slowDownHotkeyLabel.grid(row=21, column=0, padx=(254, 0), pady=(0, 0), sticky="ew")
 
         self.speedUpHotkeyLabel = ctk.CTkLabel(
-            self.mainScrollFrame, text="Speed Up", fg_color="transparent", 
+            midiSection, text="Speed Up", fg_color="transparent", 
             font=customTheme.globalFont14, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"]
         )
-        self.speedUpHotkeyLabel.grid(row=21, column=0, padx=(340, 0), pady=(0, 0), sticky="w")
+        self.speedUpHotkeyLabel.grid(row=21, column=0, padx=(340, 0), pady=(0, 0), sticky="ew")
 
         # HOTKEYS
         self.playHotkeyButton = ctk.CTkButton(
-            self.mainScrollFrame, text=configuration.configData["hotkeys"].get('play', 'f1').upper(), width=70, 
+            midiSection, text=configuration.configData["hotkeys"].get('play', 'f1').upper(), width=70, 
             command=mainFunctions.playHotkeyCommand, font=customTheme.globalFont14, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"], 
             fg_color=customTheme.activeThemeData["Theme"]["Settings"]["HotkeySelectorColor"], 
             hover_color=customTheme.activeThemeData["Theme"]["Settings"]["HotkeySelectorHoverColor"]
         )
-        self.playHotkeyButton.grid(row=22, column=0, padx=(15, 165), pady=(0, 5), sticky="w")
+        self.playHotkeyButton.grid(row=22, column=0, padx=(15, 165), pady=(0, 5), sticky="ew")
         self.__class__.playHotkeyButton = self.playHotkeyButton
         ToolTip.CreateToolTip(self.playHotkeyButton, text = 'Start Playback Hotkey')
 
         self.pauseHotkeyButton = ctk.CTkButton(
-            self.mainScrollFrame, text=configuration.configData["hotkeys"].get('pause', 'f2').upper(), width=70, 
+            midiSection, text=configuration.configData["hotkeys"].get('pause', 'f2').upper(), width=70, 
             command=mainFunctions.pauseHotkeyCommand, font=customTheme.globalFont14, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"], 
             fg_color=customTheme.activeThemeData["Theme"]["Settings"]["HotkeySelectorColor"], 
             hover_color=customTheme.activeThemeData["Theme"]["Settings"]["HotkeySelectorHoverColor"]
         )
-        self.pauseHotkeyButton.grid(row=22, column=0, padx=(95, 165), pady=(0, 5), sticky="w")
+        self.pauseHotkeyButton.grid(row=22, column=0, padx=(95, 165), pady=(0, 5), sticky="ew")
         self.__class__.pauseHotkeyButton = self.pauseHotkeyButton
         ToolTip.CreateToolTip(self.pauseHotkeyButton, text = 'Pause Playback Hotkey')
 
         self.stopHotkeyButton = ctk.CTkButton(
-            self.mainScrollFrame, text=configuration.configData["hotkeys"].get('stop', 'f3').upper(), width=70, 
+            midiSection, text=configuration.configData["hotkeys"].get('stop', 'f3').upper(), width=70, 
             command=mainFunctions.stopHotkeyCommand, font=customTheme.globalFont14, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"], 
             fg_color=customTheme.activeThemeData["Theme"]["Settings"]["HotkeySelectorColor"], 
             hover_color=customTheme.activeThemeData["Theme"]["Settings"]["HotkeySelectorHoverColor"]
         )
-        self.stopHotkeyButton.grid(row=22, column=0, padx=(175, 165), pady=(0, 5), sticky="w")
+        self.stopHotkeyButton.grid(row=22, column=0, padx=(175, 165), pady=(0, 5), sticky="ew")
         self.__class__.stopHotkeyButton = self.stopHotkeyButton
         ToolTip.CreateToolTip(self.stopHotkeyButton, text = 'Stop Playback Hotkey')
 
         self.speedUpHotkeyButton = ctk.CTkButton(
-            self.mainScrollFrame, text=configuration.configData["hotkeys"].get('speedup', 'f4').upper(), width=70, 
+            midiSection, text=configuration.configData["hotkeys"].get('speedup', 'f4').upper(), width=70, 
             command=mainFunctions.speedUpHotkeyCommand, font=customTheme.globalFont14, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"], 
             fg_color=customTheme.activeThemeData["Theme"]["Settings"]["HotkeySelectorColor"], 
             hover_color=customTheme.activeThemeData["Theme"]["Settings"]["HotkeySelectorHoverColor"]
         )
-        self.speedUpHotkeyButton.grid(row=22, column=0, padx=(255, 165), pady=(0, 5), sticky="w")
+        self.speedUpHotkeyButton.grid(row=22, column=0, padx=(255, 165), pady=(0, 5), sticky="ew")
         self.__class__.speedUpHotkeyButton = self.speedUpHotkeyButton
         ToolTip.CreateToolTip(self.speedUpHotkeyButton, text = 'Speed-up Playback Hotkey')
 
         self.slowHotkeyButton = ctk.CTkButton(
-            self.mainScrollFrame, text=configuration.configData["hotkeys"].get('slowdown', 'f5').upper(), width=70, 
+            midiSection, text=configuration.configData["hotkeys"].get('slowdown', 'f5').upper(), width=70, 
             command=mainFunctions.slowHotkeyCommand, font=customTheme.globalFont14, 
             text_color=customTheme.activeThemeData["Theme"]["Settings"]["TextColor"], 
             fg_color=customTheme.activeThemeData["Theme"]["Settings"]["HotkeySelectorColor"], 
             hover_color=customTheme.activeThemeData["Theme"]["Settings"]["HotkeySelectorHoverColor"]
         )
-        self.slowHotkeyButton.grid(row=22, column=0, padx=(337, 165), pady=(0, 5), sticky="w")
+        self.slowHotkeyButton.grid(row=22, column=0, padx=(337, 165), pady=(0, 5), sticky="ew")
         self.__class__.slowHotkeyButton = self.slowHotkeyButton
         ToolTip.CreateToolTip(self.slowHotkeyButton, text = 'Slow-down Playback Hotkey')
 

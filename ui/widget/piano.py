@@ -1,8 +1,44 @@
 import customtkinter as ctk
-from ui import customTheme
+import ui.customTheme as customTheme
 
 class Piano(ctk.CTkFrame):
-    def __init__(self, master=None, keyWidth=8.01, blackKeyWidth=5.5, *args, **kwargs):
+    def __init__(
+        self,
+        master,
+        onKeyPressed=None,
+        onKeyReleased=None,
+
+        # white keys
+        keyWidth=18,
+        keyHeight=90,
+        numWhiteKeys=14,
+
+        # black keys
+        blackKeyWidth=12,
+        blackKeyHeight=55,
+
+        # layout tweaks
+        keySpacing=1,
+        blackKeyOffsetY=0,
+
+        *args,
+        **kwargs
+    ):
+        # store callbacks
+        self.onKeyPressed = onKeyPressed
+        self.onKeyReleased = onKeyReleased
+
+        # store dimensions
+        self.keyWidth = keyWidth
+        self.keyHeight = keyHeight
+        self.numWhiteKeys = numWhiteKeys
+
+        self.blackKeyWidth = blackKeyWidth
+        self.blackKeyHeight = blackKeyHeight
+
+        self.keySpacing = keySpacing
+        self.blackKeyOffsetY = blackKeyOffsetY
+
         super().__init__(master, *args, **kwargs)
 
         self.keyWidth = keyWidth

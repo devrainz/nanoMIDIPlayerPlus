@@ -48,28 +48,6 @@ switch88Keysvar.set("on" if configuration.configData.get("midiPlayer", {}).get("
 # ------------------------
 # CONFIG TOGGLES
 # ------------------------
-def setSpeed(value):
-    logger.info(f"setSpeed called with speed: {value}")
-
-    try:
-        percent = max(1, min(500, float(value)))
-        playback_state.speed = percent
-
-        realSpeed = percent / 100.0
-
-        if configuration.configData["midiPlayer"]["useMIDIOutput"]:
-            useOutput.playbackSpeed = realSpeed
-        else:
-            midiHandler.playbackSpeed = realSpeed
-
-        # update UI safely
-        MidiPlayerTab.speedSlider.set(percent)
-        MidiPlayerTab.speedValueEntry.delete(0, "end")
-        MidiPlayerTab.speedValueEntry.insert(0, str(int(percent)))
-
-    except Exception as e:
-        logger.exception(f"setSpeed error: {e}")
-
 def switchUseMIDI():
     logger.info("switchUseMIDI called")
     try:
@@ -291,12 +269,6 @@ def playButton():
 
 
 def startPlayback():
-    realSpeed = playback_state.speed / 100.0
-
-    if configuration.configData["midiPlayer"]["useMIDIOutput"]:
-        useOutput.playbackSpeed = realSpeed
-    else:
-        midiHandler.playbackSpeed = realSpeed
     logger.info("startPlayback called")
     try:
         midiFile = MidiPlayerTab.filePathEntry.get()
@@ -355,68 +327,56 @@ def startPlayback():
         playback_state.running = False
         logger.exception(f"startPlayback error: {e}")
 
+
 def stopPlayback():
-    """Stop playback safely and fully reset UI + engine state."""
+    """Stop playback and reset UI state."""
     logger.info("stopPlayback called")
 
-    # Prevent double-stop race conditions
     if not playback_state.running:
         return
 
-    # --- STOP ENGINE FIRST ---
+    # stop output/macro mode depending on config
     try:
         if configuration.configData["midiPlayer"]["useMIDIOutput"]:
-            useOutput.stopPlayback()
+            try:
+                useOutput.stopPlayback()
+            except Exception:
+                pass
         else:
-            midiHandler.stopPlayback()
-    except Exception as e:
-        logger.debug(f"Playback engine stop raised (safe to ignore): {e}")
+            try:
+                midiHandler.stopPlayback()
+            except Exception:
+                pass
+    finally:
+        playback_state.running = False
+        playback_state.paused = False
 
-    # --- HARD RESET STATE ---
-    playback_state.running = False
-    playback_state.paused = False
-    playback_state.sustain_active = False
-
-    # --- UI RESET (VERY IMPORTANT ORDER) ---
+    # UI reset
     try:
-        # Restore PLAY button
         MidiPlayerTab.playButton.configure(
-            text="Play",
             fg_color=customTheme.activeThemeData["Theme"]["MidiPlayer"]["PlayButtonColor"],
             hover_color=customTheme.activeThemeData["Theme"]["MidiPlayer"]["PlayButtonColorHover"],
+            text="Play",
         )
+    except Exception:
+        pass
 
-        # Disable STOP button and restore color
-        MidiPlayerTab.stopButton.configure(
-            state="disabled",
-            fg_color=customTheme.activeThemeData["Theme"]["MidiPlayer"]["StopColorDisabled"],
-        )
-
-    except Exception as e:
-        logger.debug(f"UI reset warning: {e}")
-
-    # --- RESET TIMELINE (Matches original player behavior) ---
     try:
-        midiFile = MidiPlayerTab.filePathEntry.get()
+        MidiPlayerTab.stopButton.configure(state="disabled")
+    except Exception:
+        pass
 
-        if midiFile and os.path.exists(midiFile):
-            midiFileData = MidiFile(midiFile, clip=True)
-            totalTime = midiFileData.length
-
-            timelineText = (
-                f"0:00:00 / {str(datetime.timedelta(seconds=int(totalTime)))}"
-                if configuration.configData["appUI"]["timestamp"]
-                else f"X:XX:XX / {str(datetime.timedelta(seconds=int(totalTime)))}"
-            )
-
-            MidiPlayerTab.timelineIndicator.configure(text=timelineText)
-
-    except Exception as e:
-        logger.debug(f"Timeline reset warning: {e}")
+    try:
+        # keep timeline as-is; user might want to replay
+        pass
+    except Exception:
+        pass
 
     mainFunctions.log("Stopped.")
 
+
 def pausePlayback():
+    """Toggle pause."""
     logger.info("pausePlayback called")
 
     if not playback_state.running:
@@ -433,22 +393,13 @@ def pausePlayback():
         pass
 
     try:
-        if playback_state.paused:
-            MidiPlayerTab.playButton.configure(
-                text="Paused",
-                fg_color=customTheme.activeThemeData["Theme"]["MidiPlayer"]["PausedColor"],
-                hover_color=customTheme.activeThemeData["Theme"]["MidiPlayer"]["PausedColorHover"],
-            )
-        else:
-            MidiPlayerTab.playButton.configure(
-                text="Playing",
-                fg_color=customTheme.activeThemeData["Theme"]["MidiPlayer"]["PlayingColor"],
-                hover_color=customTheme.activeThemeData["Theme"]["MidiPlayer"]["PlayingColorHover"],
-            )
+        # show correct label based on playback_state.paused
+        MidiPlayerTab.playButton.configure(text="Resume" if playback_state.paused else "Playing")
     except Exception:
         pass
 
     mainFunctions.log("Paused" if playback_state.paused else "Resumed")
+
 
 def changeSpeed(amount):
     logger.info("changeSpeed called")

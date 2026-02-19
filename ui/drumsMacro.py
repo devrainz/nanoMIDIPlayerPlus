@@ -3,7 +3,7 @@ import tkinter as tk
 import json
 
 from modules import configuration
-from ui import customTheme
+import ui.customTheme as customTheme
 from ui.widget.tooltip import ToolTip
 
 class DrumsMacroTab(ctk.CTkFrame):

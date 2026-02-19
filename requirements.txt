@@ -1,7 +1,6 @@
 customtkinter
 mido
 keyboard
-pynput
 pillow
 requests
 python-rtmidi
@@ -10,3 +9,5 @@ tkinterweb[svg]
 pygments
 pyinstaller
 emoji
+evdev
+

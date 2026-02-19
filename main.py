@@ -119,8 +119,8 @@ class App(ctk.CTk):
         logger.info("App initialized")
 
         # WINDOW PROPERTIES
-        self.title("nanoMIDIPlayer")
-        self.geometry("600x450")
+        self.title("nanoMIDIPlayer+")
+        self.geometry("1150x720")
         self.resizable(False, False)
 
         if osName == "Windows":
@@ -142,10 +142,20 @@ class App(ctk.CTk):
         self.fg=customTheme.activeThemeData["Theme"]["Navigation"]["BackColor"]
         self.contentFrame = ctk.CTkFrame(self)
         self.contentFrame.grid(row=0, column=1, sticky="nsew")
+        self.grid_columnconfigure(0, weight=0)
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
         mainFunctions.registerApp(self)
+
+        # Start IPC server for Wayland/Hyprland global hotkeys.
+        # This lets you bind keys in Hyprland to control nanoMIDIPlayer
+        # without requiring root or the python "keyboard" library.
+        try:
+            from modules.functions import ipcFunctions
+            ipcFunctions.start_ipc_server(app=self)
+        except Exception:
+            logger.debug("IPC server could not start", exc_info=True)
         from modules.functions import midiPlayerFunctions
         from modules.functions import drumsMacroFunctions
         from modules.functions import settingsFunctions
@@ -169,7 +179,7 @@ class App(ctk.CTk):
         }
 
         self.grid_rowconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1)
 
         customTheme.initializeFonts()
 
@@ -224,6 +234,37 @@ class App(ctk.CTk):
             image=customTheme.settingsImageCTk, anchor="w", font=customTheme.globalFont14, command=lambda: self.showFrame("settings")
         )
         self.settingsButton.grid(row=5, column=0, sticky="ew")
+
+        # SIDEBAR > WAYLAND BUILD WATERMARK
+        is_wayland = bool(os.environ.get("WAYLAND_DISPLAY") or os.environ.get("XDG_SESSION_TYPE") == "wayland")
+        if osName == "Linux" and is_wayland:
+            nav = customTheme.activeThemeData["Theme"]["Navigation"]
+
+            badge_bg = nav.get("BackColor", "#111111")
+            badge_bg2 = "#0b0b0b" if isinstance(badge_bg, str) else "#0b0b0b"
+
+            outline = nav.get("WatermarkColor", nav.get("TextColor", "gray70"))
+
+            self.waylandBadgeFrame = ctk.CTkFrame(
+                self.navigationFrame,
+                corner_radius=8,
+                fg_color=badge_bg2,
+                border_width=2,
+                border_color=outline,
+            )
+            self.waylandBadgeFrame.grid(row=6, column=0, padx=18, pady=(0, 12), sticky="s")
+
+            badge_font = customTheme.globalFont11
+
+            self.waylandBadgeLabel = ctk.CTkLabel(
+                self.waylandBadgeFrame,
+                text="TEST WAYLAND BUILD\nPLEASE REPORT BUGS",
+                fg_color="transparent",
+                text_color="#FFFFFF",
+                font=badge_font,
+                justify="center",
+            )
+            self.waylandBadgeLabel.grid(row=0, column=0, padx=10, pady=8)
 
         # SIDEBAR WATERMARK
         self.customThemeWatermarkLine1 = ctk.CTkLabel(
@@ -280,8 +321,8 @@ class App(ctk.CTk):
         if osName == "Windows" and configuration.configData["appUI"]["checkForUpdates"]:
             threading.Thread(target=updater.runUpdater, args=(appVersion,)).start()
 
-        if osName == "Darwin":
-            mainFunctions.log("WARNING: The macOS MIDI Player may run inefficiently due to system restrictions. Please report any issues or bugs to the developer.")
+        if osName == "Linux":
+            mainFunctions.log("WARNING: The Linux MIDI Player on Wayland may run inefficiently due to Global Keylogging Restrictions. Please report any issues or bugs to the developer.")
 
     # FUNCTIONS
     def showFrame(self, name):
